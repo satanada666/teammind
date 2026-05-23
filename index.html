@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TeamMind — AI ассистент</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0e0e10; --surface: #18181c; --surface2: #222228;
+    --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.15);
+    --text: #f2f2f4; --muted: #888894;
+    --accent: #7c6af7; --accent2: #a594ff; --accent-glow: rgba(124,106,247,0.15);
+    --green: #4ade80; --red: #f87171; --amber: #fbbf24;
+    --r: 10px; --r-sm: 6px;
+  }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; }
+  body { display: flex; flex-direction: column; min-height: 100vh; }
+  .app { display: flex; flex-direction: column; min-height: 100vh; max-width: 860px; margin: 0 auto; padding: 0 20px; width: 100%; }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 24px 0 20px; border-bottom: 1px solid var(--border); }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon { width: 32px; height: 32px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .logo-text { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+  .logo-text span { color: var(--accent2); }
+  .badge { font-size: 11px; font-weight: 600; background: var(--accent-glow); color: var(--accent2); border: 1px solid rgba(124,106,247,0.3); padding: 3px 10px; border-radius: 20px; font-family: 'JetBrains Mono', monospace; }
+  .main { flex: 1; display: flex; flex-direction: column; gap: 20px; padding: 24px 0; }
+  .mode-tabs { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 4px; }
+  .mode-tab { flex: 1; padding: 8px 12px; border: none; background: none; color: var(--muted); font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 7px; transition: all 0.15s; }
+  .mode-tab.active { background: var(--surface2); color: var(--text); border: 1px solid var(--border2); }
+  .mode-tab:hover:not(.active) { color: var(--text); }
+  .input-area { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; transition: border-color 0.2s; }
+  .input-area:focus-within { border-color: rgba(124,106,247,0.5); }
+  .context-line { display: flex; align-items: center; gap: 8px; padding: 10px 14px 0; }
+  .context-label { font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; }
+  .context-tag { font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+  .tag-tech { background: rgba(59,130,246,0.15); color: #60a5fa; }
+  .tag-biz { background: rgba(74,222,128,0.12); color: var(--green); }
+  .tag-design { background: rgba(251,191,36,0.12); color: var(--amber); }
+  .tag-general { background: var(--accent-glow); color: var(--accent2); }
+  textarea { width: 100%; background: none; border: none; color: var(--text); font-family: 'Syne', sans-serif; font-size: 15px; padding: 12px 14px 14px; resize: none; outline: none; min-height: 80px; line-height: 1.6; }
+  textarea::placeholder { color: var(--muted); }
+  .input-footer { display: flex; align-items: center; justify-content: space-between; padding: 8px 14px 12px; }
+  .char-count { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+  .ask-btn { display: flex; align-items: center; gap: 8px; background: var(--accent); color: #fff; border: none; padding: 9px 20px; border-radius: var(--r-sm); font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+  .ask-btn:hover:not(:disabled) { background: #8e7df8; transform: translateY(-1px); }
+  .ask-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .answer-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; animation: slideIn 0.25s ease; }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .answer-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  .answer-meta { display: flex; align-items: center; gap: 10px; }
+  .ai-dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 8px var(--accent); }
+  .answer-label { font-size: 12px; font-weight: 700; color: var(--accent2); letter-spacing: 0.5px; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; }
+  .answer-time { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+  .copy-btn { display: flex; align-items: center; gap: 6px; background: var(--surface2); border: 1px solid var(--border); color: var(--muted); padding: 6px 12px; border-radius: var(--r-sm); font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .copy-btn:hover { color: var(--text); border-color: var(--border2); }
+  .copy-btn.copied { color: var(--green); border-color: rgba(74,222,128,0.3); }
+  .answer-body { padding: 16px; font-size: 14px; line-height: 1.75; color: #d4d4dc; white-space: pre-wrap; word-wrap: break-word; }
+  .answer-body code { background: var(--surface2); padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent2); }
+  .error-card { background: rgba(248,113,113,0.05); border: 1px solid rgba(248,113,113,0.2); border-radius: var(--r); padding: 14px 16px; display: flex; align-items: flex-start; gap: 12px; animation: slideIn 0.25s ease; }
+  .error-text { font-size: 13px; color: var(--red); line-height: 1.5; }
+  .error-code { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: rgba(248,113,113,0.6); margin-top: 4px; }
+  .section-label { font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; display: flex; align-items: center; gap: 8px; }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .history-list { display: flex; flex-direction: column; gap: 6px; }
+  .history-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-sm); cursor: pointer; transition: all 0.15s; }
+  .history-item:hover { border-color: var(--border2); background: var(--surface2); }
+  .history-num { font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--muted); width: 14px; flex-shrink: 0; }
+  .history-q { flex: 1; font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .history-item:hover .history-q { color: var(--text); }
+  .history-mode { font-size: 10px; font-family: 'JetBrains Mono', monospace; padding: 2px 6px; border-radius: 3px; flex-shrink: 0; }
+  .thinking { display: flex; align-items: center; gap: 12px; padding: 16px; }
+  .thinking-dots { display: flex; gap: 5px; }
+  .thinking-dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: pulse 1.2s ease-in-out infinite; }
+  .thinking-dot:nth-child(2) { animation-delay: 0.2s; }
+  .thinking-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes pulse { 0%,80%,100%{opacity:.3;transform:scale(.8)}40%{opacity:1;transform:scale(1)} }
+  .thinking-text { font-size: 13px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+  footer { padding: 16px 0; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .footer-info { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+  .status-dot { display: inline-block; width: 6px; height: 6px; background: var(--green); border-radius: 50%; margin-right: 6px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      <div class="logo-text">Team<span>Mind</span></div>
+    </div>
+    <div class="badge">claude-sonnet-4</div>
+  </header>
+  <div class="main">
+    <div class="mode-tabs" id="modeTabs">
+      <button class="mode-tab active" data-mode="tech">⚙ Техника</button>
+      <button class="mode-tab" data-mode="biz">📊 Бизнес</button>
+      <button class="mode-tab" data-mode="design">🎨 Дизайн</button>
+      <button class="mode-tab" data-mode="general">💡 Общий</button>
+    </div>
+    <div class="input-area">
+      <div class="context-line">
+        <span class="context-label">Режим:</span>
+        <span class="context-tag tag-tech" id="currentTag">Tech / Engineering</span>
+      </div>
+      <textarea id="questionInput" placeholder="Задайте вопрос... (Ctrl+Enter для отправки)" rows="3" maxlength="2000"></textarea>
+      <div class="input-footer">
+        <span class="char-count" id="charCount">0 / 2000</span>
+        <button class="ask-btn" id="askBtn" onclick="askAI()">
+          <span id="btnText">Спросить AI</span>
+          <span id="btnArrow" style="font-size:16px">→</span>
+        </button>
+      </div>
+    </div>
+    <div id="answerSection" style="display:none"></div>
+    <div id="errorSection" style="display:none"></div>
+    <div id="historySection" style="display:none">
+      <div class="section-label">История запросов</div>
+      <div class="history-list" id="historyList"></div>
+    </div>
+  </div>
+  <footer>
+    <div class="footer-info"><span class="status-dot"></span>TeamMind · Claude API</div>
+    <div class="footer-info" id="statsText">0 запросов в сессии</div>
+  </footer>
+</div>
+<script>
+const MODES = {
+  tech: { label:'Tech / Engineering', tagClass:'tag-tech', system:`Ты — экспертный технический ассистент команды разработки. Ответы: конкретные, с примерами кода где нужно. Если вопрос про архитектуру — дай варианты с trade-offs. Код в backticks. Отвечай на языке вопроса. Сразу к сути.` },
+  biz:  { label:'Business / Strategy', tagClass:'tag-biz', system:`Ты — бизнес-аналитик и стратегический советник команды. Ответы: чёткие, с метриками где уместно. Используй frameworks (OKR, SWOT) когда помогает. Отвечай на языке вопроса. Без воды.` },
+  design: { label:'Design / UX', tagClass:'tag-design', system:`Ты — UX/UI эксперт команды. Конкретные рекомендации с принципами дизайна. Описывая UI — конкретика: цвета, spacing, типографика. Отвечай на языке вопроса. Только actionable advice.` },
+  general: { label:'General Assistant', tagClass:'tag-general', system:`Ты — умный универсальный ассистент команды. Ответы точные, структурированные. Адаптируй стиль под запрос. Отвечай на языке вопроса. По делу.` }
+};
+let currentMode = 'tech', history = [], sessionCount = 0;
+const input = document.getElementById('questionInput');
+const charCount = document.getElementById('charCount');
+input.addEventListener('input', () => { charCount.textContent = `${input.value.length} / 2000`; });
+input.addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) askAI(); });
+document.getElementById('modeTabs').addEventListener('click', e => {
+  const tab = e.target.closest('[data-mode]');
+  if (!tab) return;
+  currentMode = tab.dataset.mode;
+  document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  const m = MODES[currentMode];
+  const tag = document.getElementById('currentTag');
+  tag.className = 'context-tag ' + m.tagClass;
+  tag.textContent = m.label;
+});
+function setLoading(v) {
+  document.getElementById('askBtn').disabled = v;
+  document.getElementById('btnText').textContent = v ? 'Думаю...' : 'Спросить AI';
+  document.getElementById('btnArrow').innerHTML = v ? '<div class="spinner"></div>' : '→';
+  if (v) {
+    document.getElementById('answerSection').style.display = 'block';
+    document.getElementById('answerSection').innerHTML = `<div class="answer-card"><div class="thinking"><div class="thinking-dots"><div class="thinking-dot"></div><div class="thinking-dot"></div><div class="thinking-dot"></div></div><div class="thinking-text">Claude обрабатывает запрос...</div></div></div>`;
+    document.getElementById('errorSection').style.display = 'none';
+  }
+}
+function fmt(t) { return t.replace(/`([^`]+)`/g,'<code>$1</code>'); }
+async function askAI() {
+  const question = input.value.trim();
+  if (!question) { input.focus(); return; }
+  setLoading(true);
+  const t0 = Date.now();
+  const mode = MODES[currentMode];
+  try {
+    const res = await fetch('/api/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question, systemPrompt: mode.system })
+    });
+    const data = await res.json();
+    if (!res.ok) throw { code: data.code || res.status, message: data.error || 'Ошибка сервера' };
+    const elapsed = ((Date.now()-t0)/1000).toFixed(1);
+    sessionCount++;
+    document.getElementById('statsText').textContent = `${sessionCount} запрос${sessionCount===1?'':sessionCount<5?'а':'ов'} в сессии`;
+    addToHistory(question, currentMode);
+    window._lastAnswer = data.answer;
+    document.getElementById('answerSection').style.display = 'block';
+    document.getElementById('answerSection').innerHTML = `<div class="answer-card"><div class="answer-header"><div class="answer-meta"><div class="ai-dot"></div><div class="answer-label">AI ответ</div><div class="answer-time">${elapsed}s · ${mode.label}</div></div><button class="copy-btn" id="copyBtn" onclick="copyAnswer()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Копировать</button></div><div class="answer-body">${fmt(data.answer)}</div></div>`;
+    document.getElementById('errorSection').style.display = 'none';
+  } catch(err) {
+    document.getElementById('answerSection').style.display = 'none';
+    document.getElementById('errorSection').style.display = 'block';
+    document.getElementById('errorSection').innerHTML = `<div class="error-card"><div style="font-size:18px;flex-shrink:0">⚠</div><div><div class="error-text">${err.message||'Ошибка соединения'}</div><div class="error-code">code: ${err.code||'network_error'}</div></div></div>`;
+  } finally { setLoading(false); }
+}
+function copyAnswer() {
+  if (!window._lastAnswer) return;
+  navigator.clipboard.writeText(window._lastAnswer).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.classList.add('copied');
+    btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg> Скопировано`;
+    setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Копировать`; }, 2000);
+  });
+}
+function addToHistory(q, mode) {
+  history.unshift({ question: q, mode });
+  if (history.length > 5) history.pop();
+  const ml = { tech:['tag-tech','⚙'], biz:['tag-biz','📊'], design:['tag-design','🎨'], general:['tag-general','💡'] };
+  document.getElementById('historySection').style.display = 'block';
+  document.getElementById('historyList').innerHTML = history.map((item,i) => {
+    const [cls,icon] = ml[item.mode];
+    return `<div class="history-item" onclick="reuseHistory(${i})"><div class="history-num">${i+1}</div><div class="history-q">${item.question}</div><div class="history-mode context-tag ${cls}">${icon}</div></div>`;
+  }).join('');
+}
+function reuseHistory(i) {
+  const item = history[i];
+  input.value = item.question;
+  charCount.textContent = `${item.question.length} / 2000`;
+  currentMode = item.mode;
+  document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`[data-mode="${item.mode}"]`).classList.add('active');
+  const m = MODES[item.mode];
+  const tag = document.getElementById('currentTag');
+  tag.className = 'context-tag ' + m.tagClass;
+  tag.textContent = m.label;
+  input.focus();
+}
+</script>
+</body>
+</html>

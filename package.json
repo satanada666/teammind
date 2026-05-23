@@ -1,0 +1,7 @@
+{
+  "name": "teammind",
+  "version": "1.0.0",
+  "description": "AI ассистент для команды на базе Claude",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" }
+}
